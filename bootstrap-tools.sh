@@ -8,8 +8,29 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# --- BEGIN parse options
+aws_configure=true
+
+while :; do
+  case ${1-x} in
+    --skip-aws-configure)
+      aws_configure=false ;;
+    -?*)
+      printf 'WARNING: unknown option (ignored): %s\n' "$1" >&2 ;;
+    *)
+	  break
+  esac
+  shift
+done
+
+# --- END parse options
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNAME=$(uname -s)
 ARCH=$(uname -m)
+
+# shellcheck disable=SC2034
+try() { set +e; "$@"; catch_status=$?; set -e; }
 
 BLUE=$(tput -Txterm setaf 4)
 RED=$(tput -Txterm setaf 1)
@@ -32,6 +53,13 @@ temppopd() { popd >/dev/null && rm -rf "$_tempdir"; }
 
 join_array() { local IFS="$1"; shift; echo "$*"; }
 
+pip_installed() {
+  local program=$1
+  if ! pip show "$program" >/dev/null 2>&1; then
+    echoerr "${YLW}$program${RED} not installed."
+    return 1
+  fi
+}
 installed() {
   local program=$1
   if ! hash "$program" 2>/dev/null; then
@@ -74,6 +102,36 @@ if [[ $EUID -eq 0 ]]; then
   exit 1
 fi
 
+if ! hash crowdai-env 2>/dev/null; then
+  mkdir -p ~/.crowdai
+  ln -s "$SCRIPT_DIR/crowdai-env" /usr/local/bin/crowdai-env
+fi
+if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
+  INIT_SCRIPT=$(cat <<EOF
+
+if hash crowdai-env 2>/dev/null; then
+  eval "\$(crowdai-env)"
+fi
+EOF
+)
+  if [[ $SHELL == *bash ]]; then
+    RCFILE=~/.bashrc
+  elif [[ $SHELL == *zsh ]]; then
+    RCFILE=~/.zshrc
+  else
+    echomsg 'Please add the following snippet to your shell .rc file:'
+    echo "$INIT_SCRIPT"
+    prompt_and_exit
+  fi
+
+  echo "$INIT_SCRIPT" >> "$RCFILE"
+  echomsg "The following to snippet has been append to $RCFILE"
+  echo "$INIT_SCRIPT"
+  echo
+  echowarn "Please restart your shell!"
+  eval "$(crowdai-env)"
+fi
+
 if [[ $UNAME == Darwin ]] && ! installed realpath; then
   echomsg 'Installing coreutils for MacOS'
   brew install --upgrade coreutils
@@ -81,7 +139,7 @@ if [[ $UNAME == Darwin ]] && ! installed realpath; then
   echogood 'Installed coreutils'
 fi
 
-minimum_py3_version=(3 5 2)
+minimum_py3_version=(3 6 6)
 if ! installed_version python3 "${minimum_py3_version[@]}"; then
   echomsg "Please update your Python installation."
   echomsg "We recommend using https://github.com/pyenv/pyenv"
@@ -101,12 +159,12 @@ if ! python3 -m pip >/dev/null 2>&1; then
   temppopd
 fi
 
-if ! installed aws; then
+if ! pip_installed aws; then
   echomsg 'Need sudo password to install awscli...'
   sudo -H python3 -m pip install --upgrade awscli
 fi
 
-if ! aws configure get aws_access_key_id >/dev/null 2>&1; then
+if [[ $aws_configure == true ]] && ! aws configure get aws_access_key_id >/dev/null 2>&1; then
   echoerr "Please configure your AWS credentials:"
   aws configure
   echogood 'AWS credentials configured.'
@@ -117,7 +175,7 @@ if ! installed docker; then
   prompt_and_exit
 fi
 
-if ! installed_version docker-compose 1 21 1; then
+if ! pip_installed docker-compose || ! installed_version docker-compose 1 22 0; then
   echomsg 'Attempting to automatically install...'
 
   echomsg 'Need sudo password to install docker-compose...'
@@ -161,6 +219,9 @@ if ! installed_version vault 0 9 3; then
 
   echogood 'Installed Hashicorp Vault'
 fi
+cat <<EOF > ~/.crowdai/vault.env
+export VAULT_ADDR='https://vault.crowdai.com'
+EOF
 
 if ! installed jq; then
   echomsg "Attempting to automatically install..."

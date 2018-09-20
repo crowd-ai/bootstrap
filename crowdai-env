@@ -1,0 +1,3 @@
+#!/bin/sh
+echo 'export CROWDAI_ENV_INITIALIZED=true'
+find ~/.crowdai -name '*.env' -exec cat {} \;
