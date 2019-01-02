@@ -32,7 +32,6 @@ done
 
 # --- END parse options
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNAME=$(uname -s)
 ARCH=$(uname -m)
 
@@ -106,9 +105,11 @@ if [[ $EUID -eq 0 ]]; then
   exit 1
 fi
 
-if ! hash crowdai-env 2>/dev/null; then
-  mkdir -p ~/.crowdai
-  ln -s "$SCRIPT_DIR/crowdai-env" /usr/local/bin/crowdai-env
+mkdir -p ~/.crowdai
+curl -fsSL https://raw.githubusercontent.com/crowd-ai/bootstrap/master/crowdai-env > ~/.crowdai/crowdai-env
+chmod +x ~/.crowdai/crowdai-env
+if [[ ! -e /usr/local/bin/crowdai-env ]]; then
+  ln -s ~/.crowdai/crowdai-env /usr/local/bin/crowdai-env
 fi
 
 if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
