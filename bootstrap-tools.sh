@@ -8,17 +8,24 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+readonly minimum_python_version=(3 6 6)
+readonly PYTHON='python3.6'
+readonly minimum_docker_compose_version=(1 23 2)
+readonly minimum_vault_version=(0 9 3)
+
 # --- BEGIN parse options
 aws_configure=true
+auto_configure_rc=false
 
-while :; do
+while [[ $# -gt 0 ]]; do
   case ${1-x} in
     --skip-aws-configure)
       aws_configure=false ;;
-    -?*)
-      printf 'WARNING: unknown option (ignored): %s\n' "$1" >&2 ;;
+    --auto-configure-rc)
+      auto_configure_rc=true ;;
     *)
-	  break
+      printf 'ERROR: unknown argument: %s\n' "$1" >&2 ;
+      exit 1 ;;
   esac
   shift
 done
@@ -28,9 +35,6 @@ done
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNAME=$(uname -s)
 ARCH=$(uname -m)
-
-# shellcheck disable=SC2034
-try() { set +e; "$@"; catch_status=$?; set -e; }
 
 BLUE=$(tput -Txterm setaf 4)
 RED=$(tput -Txterm setaf 1)
@@ -53,14 +57,14 @@ temppopd() { popd >/dev/null && rm -rf "$_tempdir"; }
 
 join_array() { local IFS="$1"; shift; echo "$*"; }
 
-pip_installed() {
+is_pip_installed() {
   local program=$1
   if ! pip show "$program" >/dev/null 2>&1; then
     echoerr "${YLW}$program${RED} not installed."
     return 1
   fi
 }
-installed() {
+is_installed() {
   local program=$1
   if ! hash "$program" 2>/dev/null; then
     echoerr "${YLW}$program${RED} not installed."
@@ -81,7 +85,7 @@ semver_check() {
 }
 installed_version() {
   local program=$1
-  if ! installed "$program"; then
+  if ! is_installed "$program"; then
     return 2
   fi
 
@@ -106,62 +110,66 @@ if ! hash crowdai-env 2>/dev/null; then
   mkdir -p ~/.crowdai
   ln -s "$SCRIPT_DIR/crowdai-env" /usr/local/bin/crowdai-env
 fi
-if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
-  INIT_SCRIPT=$(cat <<EOF
 
+if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
+  INIT_SCRIPT='
 if hash crowdai-env 2>/dev/null; then
-  eval "\$(crowdai-env)"
-fi
-EOF
-)
+  eval "$(crowdai-env)"
+fi'
+
+  if [[ $auto_configure_rc != true ]]; then
+    echomsg 'Please add the following snippet to your shell .rc file and then restart your shell:'
+    echo "$INIT_SCRIPT"
+    prompt_and_exit
+  fi
+
   if [[ $SHELL == *bash ]]; then
     RCFILE=~/.bashrc
   elif [[ $SHELL == *zsh ]]; then
     RCFILE=~/.zshrc
   else
-    echomsg 'Please add the following snippet to your shell .rc file:'
+    echomsg 'Please add the following snippet to your shell .rc file and then restart your shell:'
     echo "$INIT_SCRIPT"
     prompt_and_exit
   fi
 
   echo "$INIT_SCRIPT" >> "$RCFILE"
-  echomsg "The following to snippet has been append to $RCFILE"
+  echomsg "The following to snippet has been automatically appended to $RCFILE"
   echo "$INIT_SCRIPT"
   echo
   echowarn "Please restart your shell!"
   eval "$(crowdai-env)"
 fi
 
-if [[ $UNAME == Darwin ]] && ! installed realpath; then
+if [[ $UNAME == Darwin ]] && ! is_installed realpath; then
   echomsg 'Installing coreutils for MacOS'
   brew install --upgrade coreutils
 
   echogood 'Installed coreutils'
 fi
 
-minimum_py3_version=(3 6 6)
-if ! installed_version python3 "${minimum_py3_version[@]}"; then
+if ! installed_version $PYTHON "${minimum_python_version[@]}"; then
   echomsg "Please update your Python installation."
   echomsg "We recommend using https://github.com/pyenv/pyenv"
   prompt_and_exit
 fi
 
-if ! python3 -m pip >/dev/null 2>&1; then
+if ! $PYTHON -m pip >/dev/null 2>&1; then
   echoerr "pip not installed for Python3!"
   echomsg "attempting to automatically install..."
 
   temppushd
 
   echomsg 'Need sudo password to install pip...'
-  wget --quiet -O- https://bootstrap.pypa.io/get-pip.py | sudo -H python3 -
-  python3 -m pip install --upgrade pip
+  wget --quiet -O- https://bootstrap.pypa.io/get-pip.py | sudo -H $PYTHON -
+  $PYTHON -m pip install --upgrade pip
 
   temppopd
 fi
 
-if ! pip_installed aws; then
+if ! is_pip_installed aws; then
   echomsg 'Need sudo password to install awscli...'
-  sudo -H python3 -m pip install --upgrade awscli
+  sudo -H $PYTHON -m pip install --upgrade awscli
 fi
 
 if [[ $aws_configure == true ]] && ! aws configure get aws_access_key_id >/dev/null 2>&1; then
@@ -170,19 +178,19 @@ if [[ $aws_configure == true ]] && ! aws configure get aws_access_key_id >/dev/n
   echogood 'AWS credentials configured.'
 fi
 
-if ! installed docker; then
+if ! is_installed docker; then
   echomsg "Please follow instructions to install here: https://docs.docker.com/install"
   prompt_and_exit
 fi
 
-if ! pip_installed docker-compose || ! installed_version docker-compose 1 22 0; then
+if ! is_pip_installed docker-compose || ! installed_version docker-compose "${minimum_docker_compose_version[@]}"; then
   echomsg 'Attempting to automatically install...'
 
   echomsg 'Need sudo password to install docker-compose...'
-  sudo -H python3 -m pip install --upgrade docker-compose
+  sudo -H $PYTHON -m pip install --upgrade docker-compose
 fi
 
-if ! installed_version vault 0 9 3; then
+if ! installed_version vault "${minimum_vault_version[@]}"; then
   echomsg "Attempting to automatically install..."
 
   if [[ $UNAME == Darwin ]]; then
@@ -223,7 +231,7 @@ cat <<EOF > ~/.crowdai/vault.env
 export VAULT_ADDR='https://vault.crowdai.com'
 EOF
 
-if ! installed jq; then
+if ! is_installed jq; then
   echomsg "Attempting to automatically install..."
 
   if [[ $UNAME == Darwin ]]; then
@@ -247,7 +255,7 @@ if ! installed jq; then
   echogood 'Installed jq'
 fi
 
-if ! installed consul-template; then
+if ! is_installed consul-template; then
   echomsg 'Attempting to automatically install...'
 
   if [[ $UNAME == Darwin ]]; then
