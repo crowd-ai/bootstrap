@@ -10,6 +10,7 @@ set -o pipefail
 
 readonly minimum_python_version=(3 6 6)
 readonly PYTHON='python3.6'
+readonly PIP="$PYTHON -m pip"
 readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
 
@@ -68,7 +69,7 @@ join_array() { local IFS="$1"; shift; echo "$*"; }
 
 is_pip_installed() {
   local program=$1
-  if ! pip show "$program" >/dev/null 2>&1; then
+  if ! $PIP show "$program" >/dev/null 2>&1; then
     echoerr "${YLW}$program${RED} not installed."
     return 1
   fi
@@ -166,7 +167,7 @@ if ! installed_version $PYTHON "${minimum_python_version[@]}"; then
   prompt_and_exit
 fi
 
-if ! $PYTHON -m pip >/dev/null 2>&1; then
+if ! $PIP >/dev/null 2>&1; then
   echoerr "pip not installed for Python3!"
   echomsg "attempting to automatically install..."
 
@@ -174,14 +175,14 @@ if ! $PYTHON -m pip >/dev/null 2>&1; then
 
   echomsg 'Need sudo password to install pip...'
   wget --quiet -O- https://bootstrap.pypa.io/get-pip.py | $SUDO $PYTHON -
-  $PYTHON -m pip install --upgrade pip
+  $PIP install --upgrade pip
 
   temppopd
 fi
 
 if ! is_pip_installed aws; then
   echomsg 'Need sudo password to install awscli...'
-  $SUDO $PYTHON -m pip install --upgrade awscli
+  $SUDO "$PIP" install --upgrade awscli
 fi
 
 if [[ $aws_configure == true ]] && ! aws configure get aws_access_key_id >/dev/null 2>&1; then
@@ -199,7 +200,7 @@ if ! is_pip_installed docker-compose || ! installed_version docker-compose "${mi
   echomsg 'Attempting to automatically install...'
 
   echomsg 'Need sudo password to install docker-compose...'
-  $SUDO $PYTHON -m pip install --upgrade docker-compose
+  $SUDO "$PIP" install --upgrade docker-compose
 fi
 
 if ! installed_version vault "${minimum_vault_version[@]}"; then
