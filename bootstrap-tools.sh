@@ -14,14 +14,16 @@ readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
 
 # --- BEGIN parse options
-allow_sudo=false
+interactive=true
 aws_configure=true
 auto_configure_rc=false
 
 while [[ $# -gt 0 ]]; do
   case ${1-x} in
-    --allow-sudo)
-      allow_sudo=true ;;
+    --non-interactive)
+      interactive=false;
+      aws_configure=false;
+      auto_configure_rc=true ;;
     --skip-aws-configure)
       aws_configure=false ;;
     --auto-configure-rc)
@@ -37,6 +39,11 @@ done
 
 UNAME=$(uname -s)
 ARCH=$(uname -m)
+
+SUDO="sudo -EH"
+if [[ $interactive == false ]]; then
+  SUDO="$SUDO --non-interactive"
+fi
 
 BLUE=$(tput -Txterm setaf 4)
 RED=$(tput -Txterm setaf 1)
@@ -103,7 +110,7 @@ installed_version() {
   fi
 }
 
-if [[ $allow_sudo != true && $EUID -eq 0 ]]; then
+if [[ $EUID -eq 0 ]]; then
   echomsg 'Please run this script without sudo.'
   exit 1
 fi
@@ -113,7 +120,7 @@ curl -fsSL https://raw.githubusercontent.com/crowd-ai/bootstrap/master/crowdai-e
 chmod +x ~/.crowdai/crowdai-env
 if [[ ! -e /usr/local/bin/crowdai-env ]]; then
   echomsg 'Need sudo password to install link crowdai-env binary...'
-  sudo ln -s ~/.crowdai/crowdai-env /usr/local/bin/crowdai-env
+  $SUDO ln -s ~/.crowdai/crowdai-env /usr/local/bin/crowdai-env
 fi
 
 if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
@@ -166,7 +173,7 @@ if ! $PYTHON -m pip >/dev/null 2>&1; then
   temppushd
 
   echomsg 'Need sudo password to install pip...'
-  wget --quiet -O- https://bootstrap.pypa.io/get-pip.py | sudo -H $PYTHON -
+  wget --quiet -O- https://bootstrap.pypa.io/get-pip.py | $SUDO $PYTHON -
   $PYTHON -m pip install --upgrade pip
 
   temppopd
@@ -174,7 +181,7 @@ fi
 
 if ! is_pip_installed aws; then
   echomsg 'Need sudo password to install awscli...'
-  sudo -H $PYTHON -m pip install --upgrade awscli
+  $SUDO $PYTHON -m pip install --upgrade awscli
 fi
 
 if [[ $aws_configure == true ]] && ! aws configure get aws_access_key_id >/dev/null 2>&1; then
@@ -192,7 +199,7 @@ if ! is_pip_installed docker-compose || ! installed_version docker-compose "${mi
   echomsg 'Attempting to automatically install...'
 
   echomsg 'Need sudo password to install docker-compose...'
-  sudo -H $PYTHON -m pip install --upgrade docker-compose
+  $SUDO $PYTHON -m pip install --upgrade docker-compose
 fi
 
 if ! installed_version vault "${minimum_vault_version[@]}"; then
@@ -207,8 +214,8 @@ if ! installed_version vault "${minimum_vault_version[@]}"; then
     if ! hash unzip; then
       if hash apt-get 2>/dev/null; then
         echomsg "Need sudo to install unzip through package manager..."
-        sudo apt-get update
-        sudo apt-get install unzip
+        $SUDO apt-get update
+        $SUDO apt-get install unzip
       else
         echoerr "Couldn't find unzip program on \$PATH"
         echomsg "Please install ${YLW}unzip${BLUE} through your package manager, then rerun this script."
@@ -219,8 +226,8 @@ if ! installed_version vault "${minimum_vault_version[@]}"; then
     wget --quiet -O vault.zip 'https://releases.hashicorp.com/vault/0.10.1/vault_0.10.1_linux_amd64.zip'
     unzip vault.zip
     echomsg 'Need sudo password to move vault binary into /usr/local/bin...'
-    sudo chmod +x vault
-    sudo mv vault /usr/local/bin/vault
+    $SUDO chmod +x vault
+    $SUDO mv vault /usr/local/bin/vault
 
     temppopd
 
@@ -244,12 +251,12 @@ if ! is_installed jq; then
 
   elif [[ $UNAME == 'Linux' ]] && hash apt-get 2>/dev/null; then  # Debian and Ubuntu
     echomsg "Need sudo to install jq through package manager..."
-    sudo apt-get update
-    sudo apt-get install jq
+    $SUDO apt-get update
+    $SUDO apt-get install jq
 
   elif [[ $UNAME == 'Linux' ]] && hash pacman 2>/dev/null; then  # Arch
     echomsg "Need sudo to install jq through package manager..."
-    sudo pacman -Sy jq
+    $SUDO pacman -Sy jq
 
   else
     echoerr "Unable to automatically install jq for $UNAME platform."
@@ -272,7 +279,7 @@ if ! is_installed consul-template; then
     wget --quiet -O consul-template.tgz 'https://releases.hashicorp.com/consul-template/0.19.4/consul-template_0.19.4_linux_amd64.tgz'
     tar xf consul-template.tgz
     echomsg 'Need sudo password to move consul-template binary into /usr/local/bin...'
-    sudo mv consul-template /usr/local/bin/consul-template
+    $SUDO mv consul-template /usr/local/bin/consul-template
 
     temppopd
 
