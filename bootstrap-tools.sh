@@ -14,11 +14,14 @@ readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
 
 # --- BEGIN parse options
+allow_sudo=false
 aws_configure=true
 auto_configure_rc=false
 
 while [[ $# -gt 0 ]]; do
   case ${1-x} in
+    --allow-sudo)
+      allow_sudo=true ;;
     --skip-aws-configure)
       aws_configure=false ;;
     --auto-configure-rc)
@@ -100,7 +103,7 @@ installed_version() {
   fi
 }
 
-if [[ $EUID -eq 0 ]]; then
+if [[ $allow_sudo != true && $EUID -eq 0 ]]; then
   echomsg 'Please run this script without sudo.'
   exit 1
 fi
