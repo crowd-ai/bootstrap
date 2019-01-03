@@ -112,7 +112,8 @@ mkdir -p ~/.crowdai
 curl -fsSL https://raw.githubusercontent.com/crowd-ai/bootstrap/master/crowdai-env > ~/.crowdai/crowdai-env
 chmod +x ~/.crowdai/crowdai-env
 if [[ ! -e /usr/local/bin/crowdai-env ]]; then
-  ln -s ~/.crowdai/crowdai-env /usr/local/bin/crowdai-env
+  echomsg 'Need sudo password to install link crowdai-env binary...'
+  sudo ln -s ~/.crowdai/crowdai-env /usr/local/bin/crowdai-env
 fi
 
 if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
