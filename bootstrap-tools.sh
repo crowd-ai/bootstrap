@@ -9,10 +9,11 @@ set -o nounset
 set -o pipefail
 
 readonly minimum_python_version=(3 6 6)
-readonly PYTHON='python3.6'
-readonly PIP="$PYTHON -m pip"
 readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
+
+readonly PYTHON='python3.6'
+readonly PIP="$PYTHON -m pip"
 
 # --- BEGIN parse options
 interactive=true
@@ -182,7 +183,8 @@ fi
 
 if ! is_pip_installed aws; then
   echomsg 'Need sudo password to install awscli...'
-  $SUDO "$PIP" install --upgrade awscli
+  # shellcheck disable=SC2086
+  $SUDO $PIP install --upgrade awscli
 fi
 
 if [[ $aws_configure == true ]] && ! aws configure get aws_access_key_id >/dev/null 2>&1; then
@@ -200,7 +202,8 @@ if ! is_pip_installed docker-compose || ! installed_version docker-compose "${mi
   echomsg 'Attempting to automatically install...'
 
   echomsg 'Need sudo password to install docker-compose...'
-  $SUDO "$PIP" install --upgrade docker-compose
+  # shellcheck disable=SC2086
+  $SUDO $PIP install --upgrade docker-compose
 fi
 
 if ! installed_version vault "${minimum_vault_version[@]}"; then
