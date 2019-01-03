@@ -268,8 +268,8 @@ if ! is_installed consul-template; then
   elif [[ $UNAME == 'Linux' && $ARCH == 'x86_64' ]]; then
     temppushd
 
-    wget --quiet 'https://releases.hashicorp.com/consul-template/0.19.4/consul-template_0.19.4_linux_amd64.tgz'
-    tar xf consul-template.*
+    wget --quiet -O consul-template.tgz 'https://releases.hashicorp.com/consul-template/0.19.4/consul-template_0.19.4_linux_amd64.tgz'
+    tar xf consul-template.tgz
     echomsg 'Need sudo password to move consul-template binary into /usr/local/bin...'
     sudo mv consul-template /usr/local/bin/consul-template
 
