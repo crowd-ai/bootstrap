@@ -181,7 +181,7 @@ if ! $PIP >/dev/null 2>&1; then
   temppopd
 fi
 
-if ! is_pip_installed aws; then
+if ! is_pip_installed awscli; then
   echomsg 'Need sudo password to install awscli...'
   # shellcheck disable=SC2086
   $SUDO $PIP install --upgrade awscli
