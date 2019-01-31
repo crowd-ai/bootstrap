@@ -8,6 +8,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+readonly minimum_git_version=(2 0 0)
 readonly minimum_python_version=(3 6 6)
 readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
@@ -153,6 +154,11 @@ fi'
   echo
   echowarn "Please restart your shell!"
   eval "$(crowdai-env)"
+fi
+
+if ! installed_version git "${minimum_git_version[@]}"; then
+  echomsg "Please update your git installation."
+  prompt_and_exit
 fi
 
 if [[ $UNAME == Darwin ]] && ! is_installed realpath; then
