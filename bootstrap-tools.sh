@@ -114,7 +114,7 @@ installed_version() {
 }
 
 if [[ $EUID -eq 0 ]]; then
-  echomsg 'Please run this script without sudo.'
+  echowarn 'Please run this script without sudo.'
   exit 1
 fi
 
