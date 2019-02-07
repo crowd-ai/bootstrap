@@ -47,7 +47,8 @@ if ! git pull origin dev; then
   echoerr "Could not update Inca git repo!"
   echo
   echowarn "Do you have your Github SSH key loaded added to your ssh agent keychain?"
-  echowarn "Run ${GRN}ssh-add -l${CLR} to check if your Github key is loaded."
+  echowarn "Run ${GRN}ssh-add -l${YLW} to check if your Github key is loaded."
+  echo
   exit 1
 fi
 
@@ -61,7 +62,8 @@ if ! git pull origin dev; then
   echoerr "Could not update Aztec git repo!"
   echo
   echowarn "Do you have your Github SSH key loaded into your ssh agent keychain?"
-  echowarn "Run ${GRN}ssh-add -l${CLR} to check if your Github key is loaded."
+  echowarn "Run ${GRN}ssh-add -l${YLW} to check if your Github key is loaded."
+  echo
   exit 1
 fi
 
