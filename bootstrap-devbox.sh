@@ -73,6 +73,9 @@ echomsg 'Bootstrapping CrowdAI tools and Inca'
 echomsg '#################################'
 ./scripts/bootstrap-dev-server.sh
 
+mkdir -p "$HOME/.crowdai"
+touch "$HOME/.crowdai/devbox-bootstrapped-successfully"
+
 echo
 echogood 'Done boostrapping devbox!'
 echowarn "##### Please source your shell .rc file or restart your shell!"
