@@ -136,10 +136,7 @@ if [[ ! -e /usr/local/bin/crowdai-env ]]; then
 fi
 
 if [[ -z ${CROWDAI_ENV_INITIALIZED+x} ]]; then
-  INIT_SCRIPT='
-if hash crowdai-env 2>/dev/null; then
-  eval "$(crowdai-env)"
-fi'
+  INIT_SCRIPT='if hash crowdai-env 2>/dev/null; then eval "$(crowdai-env)"; fi'
 
   if [[ "${auto_configure_rc}" != "true" ]]; then
     echomsg 'Please add the following snippet to your shell .rc file and then restart your shell:'
@@ -226,6 +223,10 @@ if ! installed_version vault "${minimum_vault_version[@]}"; then
 
   if [[ "${UNAME}" == "Darwin" ]]; then
     brew install --upgrade vault
+
+  elif [[ "${UNAME}" == 'Linux' ]] && hash pacman 2>/dev/null; then  # Arch
+    echomsg "Need sudo to install vault through package manager..."
+    ${SUDO} pacman -Sy vault
 
   elif [[ "${UNAME}" == 'Linux' && $ARCH == 'x86_64' ]]; then
     temppushd
