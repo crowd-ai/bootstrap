@@ -292,6 +292,9 @@ if ! is_installed consul-template; then
   if [[ "${UNAME}" == "Darwin" ]]; then
     brew install consul-template
 
+  elif [[ "${UNAME}" == 'Linux' ]] && hash yay 2>/dev/null; then  # Arch
+    yay -Syu consul-template
+
   elif [[ "${UNAME}" == 'Linux' && "${ARCH}" == 'x86_64' ]]; then
     temppushd
 
