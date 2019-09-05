@@ -28,7 +28,7 @@ echoerr() {
   echo "${RED}$1${CLR}" >&2
 }
 
-if [[ "${EUID}" -eq 0 ]]; then
+if [[ ${EUID} -eq 0 ]]; then
   echowarn 'Please run this script without sudo.'
   exit 1
 fi
