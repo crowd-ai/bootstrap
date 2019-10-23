@@ -222,7 +222,7 @@ if ! installed_version vault "${minimum_vault_version[@]}"; then
   echomsg "Attempting to automatically install..."
 
   if [[ "${UNAME}" == "Darwin" ]]; then
-    brew install --upgrade vault
+    brew install vault
 
   elif [[ "${UNAME}" == 'Linux' ]] && hash pacman 2>/dev/null; then  # Arch
     echomsg "Need sudo to install vault through package manager..."
