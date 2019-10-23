@@ -13,7 +13,7 @@ readonly minimum_python_version=(3 6 6)
 readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
 
-readonly PYTHON="$(which python3.6)"
+readonly PYTHON="$(which python3)"
 readonly PIP="${PYTHON} -m pip"
 
 # --- BEGIN parse options
