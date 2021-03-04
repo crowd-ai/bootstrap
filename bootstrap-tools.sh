@@ -13,7 +13,7 @@ readonly minimum_python_version=(3 6 6)
 readonly minimum_docker_compose_version=(1 23 2)
 readonly minimum_vault_version=(0 9 3)
 
-readonly PYTHON="$(which python3.6)"
+readonly PYTHON="$(which python3)"
 readonly PIP="${PYTHON} -m pip"
 
 # --- BEGIN parse options
@@ -222,7 +222,7 @@ if ! installed_version vault "${minimum_vault_version[@]}"; then
   echomsg "Attempting to automatically install..."
 
   if [[ "${UNAME}" == "Darwin" ]]; then
-    brew install --upgrade vault
+    brew install vault
 
   elif [[ "${UNAME}" == 'Linux' ]] && hash pacman 2>/dev/null; then  # Arch
     echomsg "Need sudo to install vault through package manager..."
