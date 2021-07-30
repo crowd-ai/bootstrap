@@ -260,7 +260,7 @@ if ! installed_version vault "${minimum_vault_version[@]}"; then
   echogood 'Installed Hashicorp Vault'
 fi
 cat <<EOF > ~/.crowdai/vault.env
-export VAULT_ADDR='https://vault.crowdai.com'
+export VAULT_ADDR='https://vault-blue.crowdai.com'
 EOF
 
 if ! is_installed jq; then
